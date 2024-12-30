@@ -1,0 +1,129 @@
+PART 1:
+//Mini Project Team Num :- 27
+//Ajey Prasanna,Akshay Bharatraj Shet, Anil, Bishal Pal
+//5th Sem BIT
+
+#define BLYNK_TEMPLATE_ID "TMPL3Yq8FTvnj"
+#define BLYNK_TEMPLATE_NAME "Sleep Apnea"
+#define BLYNK_AUTH_TOKEN "YljBe9aRURsmGsGuo6O_2ljduywU03l2"
+
+#include <Wire.h>
+#include "MAX30100_PulseOximeter.h"
+#define BLYNK_PRINT Serial 
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+
+#define REPORTING_PERIOD_MS 2000
+
+char auth[] = BLYNK_AUTH_TOKEN;  // Auth Token in the Blynk App.
+char ssid[] = "IQOO NEO6";          // Your WiFi credentials.
+char pass[] = "12345678";
+
+PulseOximeter pox;
+
+float BPM, SpO2;
+uint32_t tsLastReport = 0;
+
+void onBeatDetected() {
+    Serial.println("Beat Detected!");
+}
+
+void setup() {
+    Serial.begin(115200);
+    
+    Blynk.begin(auth, ssid, pass);
+
+    Serial.print("Initializing Pulse Oximeter..");
+
+    if (!pox.begin()) {
+        Serial.println("FAILED");
+        for (;;);
+    } else {
+        Serial.println("SUCCESS");
+        pox.setOnBeatDetectedCallback(onBeatDetected);
+    }
+
+    // The default current for the IR LED is 50mA and it could be changed by uncommenting the following line.
+    pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
+}
+
+void loop() {
+    pox.update();
+    Blynk.run();
+
+    // Read heart rate and SpO2
+    BPM = pox.getHeartRate();
+    SpO2 = pox.getSpO2();
+
+    // Read piezoelectric p raw value to 0-100 scale
+
+    if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+        // Print data to Serial Monitor
+        Serial.print("Heart rate: ");
+        Serial.print(BPM);
+        Serial.print(" bpm / SpO2: ");
+        Serial.print(SpO2);
+
+        // Send data to Blynk
+        Blynk.virtualWrite(V9, BPM);            // Heart rate
+        Blynk.virtualWrite(V8, SpO2);           // SpO2
+
+        tsLastReport = millis();
+    }
+}
+
+PART 2:
+//Mini Project Team Num :- 27
+//Ajey Prasanna,Akshay Bharatraj Shet, Anil, Bishal Pal
+//5th Sem BIT
+#define BLYNK_TEMPLATE_ID "TMPL3Yq8FTvnj"
+#define BLYNK_TEMPLATE_NAME "Sleep Apnea"
+#define BLYNK_AUTH_TOKEN "YljBe9aRURsmGsGuo6O_2ljduywU03l2"
+
+#include <Wire.h>
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+
+#define ECG_PIN 34 // ECG signal from AD8232 connected to GPIO 34
+
+// Blynk credentials
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "IQOO NEO6";   // Enter your WiFi credentials
+char pass[] = "12345678";
+
+// ECG signal variables
+int ecgValue = 0;
+uint32_t tsLastReport = 0;
+
+#define REPORTING_PERIOD_MS 2000 // Report period for sending data to Blynk and Serial Monitor
+
+void setup() {
+  Serial.begin(115200); // Start serial communication for monitoring
+
+  pinMode(ECG_PIN, INPUT); // Set the ECG input pin to read analog values
+  
+  // Connect to Blynk
+  Blynk.begin(auth, ssid, pass);
+
+  Serial.println("Initializing ECG Monitor...");
+}
+
+void loop() {
+  // Update the Blynk library
+  Blynk.run();
+
+  // Read the analog value from the ECG sensor (AD8232)
+  ecgValue = analogRead(ECG_PIN); // Read the ECG signal from the AD8232
+
+  // Send data to Blynk if the reporting period has passed
+  if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+    // Print the ECG signal to Serial Monitor
+    Serial.print("ECG Signal: ");
+    Serial.println(ecgValue);
+
+    // Send ECG value to Blynk (virtual pin V10 for ECG)
+    Blynk.virtualWrite(V10, ecgValue);
+
+    tsLastReport = millis(); // Update the timestamp for reporting
+  }
+}
